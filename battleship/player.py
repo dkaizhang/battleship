@@ -72,7 +72,8 @@ class Player(object):
                     ship is (on the board owned by the player).
                     - has_ship_sunk is True if and only if that attack made the ship sink.
         """
-        # TODO
+        return self.board.is_attacked_at(coord_x, coord_y)
+
 
     def select_coordinates_to_attack(self, opponent) -> Tuple[int, int]:
         """
@@ -86,7 +87,7 @@ class Player(object):
         """
         :return: True if and only if all the ships of the player have sunk
         """
-        # TODO
+        return self.board.has_no_ships_left()
 
     def print_board_with_ships(self):
         self.board.print_board_with_ships_positions()
@@ -124,8 +125,14 @@ class PlayerAutomatic(Player):
 
     def __init__(self, name_player: str = None):
         board = BoardAutomatic()
+        self.set_positions_previously_attacked = set()
+        self.last_attack_coord = None
+        self.list_ships_opponent_previously_sunk = []
+        self.set_positions_near_sunk_ships = set()
 
         super().__init__(board, name_player)
+
+
 
     def select_coordinates_to_attack(self, opponent: Player) -> tuple:
         """
