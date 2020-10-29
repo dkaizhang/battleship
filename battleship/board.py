@@ -132,16 +132,15 @@ class Board(object):
     def are_some_ships_too_close_from_each_other(self) -> bool:
         return not self.valid_ship_placements(self.list_ships)
 
+    def valid_coordinates(self, x, y) -> bool:
+        return 1 <= x <= self.SIZE_X and 1 <= y <= self.SIZE_Y
 
 class BoardAutomatic(Board):
     
-    _MAX_TRIES = 10
+    _MAX_TRIES = 100
 
     def __init__(self):
         super().__init__(list_ships=self.generate_ships_automatically())
-
-    def _valid_coordinates(self, x, y) -> bool:
-        return 1 <= x <= self.SIZE_X and 1 <= y <= self.SIZE_Y
 
     def _generate_random_ship(self, length) -> Ship:
         t = 0
@@ -157,7 +156,7 @@ class BoardAutomatic(Board):
             else:
                 x_end = x_start + l
                 y_end = y_start
-            valid = self._valid_coordinates(x_end, y_end)
+            valid = self.valid_coordinates(x_end, y_end)
                    
             t += 1
         return Ship((x_start, y_start), (x_end, y_end))        
