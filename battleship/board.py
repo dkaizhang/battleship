@@ -1,3 +1,6 @@
+import random
+
+from itertools import combinations
 from typing import List, Tuple
 
 from battleship.ship import Ship
@@ -25,7 +28,6 @@ class Board(object):
         :raise ValueError if the list of ships is in contradiction with Board.DICT_NUMBER_SHIPS_PER_LENGTH.
         :raise ValueError if there are some ships that are too close from each other
         """
-
         self.list_ships = list_ships
         self.set_coordinates_previous_shots = set()
 
@@ -43,26 +45,18 @@ class Board(object):
             raise ValueError("There are some ships that are too close from each other.")
 
     def has_no_ships_left(self) -> bool:
-        """
-        :return: True if and only if all the ships on the board have sunk.
-        """
-        # TODO
+        for s in self.list_ships:
+            if not s.has_sunk():
+                return False
+        return True
 
     def is_attacked_at(self, coord_x: int, coord_y: int) -> Tuple[bool, bool]:
-        """
-        The board receives an attack at the position (coord_x, coord_y).
-        - if there is no ship at that position -> nothing happens
-        - if there is a ship at that position -> it is damaged at that coordinate
-
-        :param coord_x: integer representing the projection of a coordinate on the x-axis
-        :param coord_y: integer representing the projection of a coordinate on the y-axis
-        :return: a tuple of bool variables (is_ship_hit, has_ship_sunk) where:
-                    - is_ship_hit is True if and only if the attack was performed at a set of coordinates where an
-                    opponent's ship is.
-                    - has_ship_sunk is True if and only if that attack made the ship sink.
-        """
-
-        # TODO
+        self.set_coordinates_previous_shots.add((coord_x, coord_y))
+        for s in self.list_ships:
+            if (coord_x, coord_y) in s.get_all_coordinates():
+                s.gets_damage_at(coord_x, coord_y)
+                return (s.is_damaged_at(coord_x, coord_y), s.has_sunk())
+        return (False, False)
 
     def print_board_with_ships_positions(self) -> None:
         array_board = [[' ' for _ in range(self.SIZE_X)] for _ in range(self.SIZE_Y)]
@@ -123,32 +117,73 @@ class Board(object):
         return board_str
 
     def lengths_of_ships_correct(self) -> bool:
-        """
-        :return: True if and only if there is the right number of ships of each length, according to
-        Board.DICT_NUMBER_SHIPS_PER_LENGTH
-        """
-        # TODO
+        ships = {}
+        for s in self.list_ships:
+            ships[len(s)] = ships.get(len(s), 0) + 1
+        return ships == self.DICT_NUMBER_SHIPS_PER_LENGTH
+
+    def valid_ship_placements(self, list_ships) -> bool:
+        pairs = combinations(list_ships, 2)
+        for p in pairs:
+            if p[0].is_near_ship(p[1]) and p[0] != p[1]:
+                return False
+        return True
 
     def are_some_ships_too_close_from_each_other(self) -> bool:
-        """
-        :return: True if and only if there are at least 2 ships on the board that are near each other.
-        """
-        # TODO
+        return not self.valid_ship_placements(self.list_ships)
 
 
 class BoardAutomatic(Board):
+    
+    _MAX_TRIES = 10
+
     def __init__(self):
         super().__init__(list_ships=self.generate_ships_automatically())
+
+    def _valid_coordinates(self, x, y) -> bool:
+        return 1 <= x <= self.SIZE_X and 1 <= y <= self.SIZE_Y
+
+    def _generate_random_ship(self, length) -> Ship:
+        t = 0
+        valid = False
+        while not valid and t < self._MAX_TRIES:
+            x_start = random.randint(1, self.SIZE_X)
+            y_start = random.randint(1, self.SIZE_Y)
+            is_vertical = random.choice([True, False])
+            l = random.choice([-length + 1, length - 1])
+            if is_vertical:
+                x_end = x_start
+                y_end = y_start + l
+            else:
+                x_end = x_start + l
+                y_end = y_start
+            valid = self._valid_coordinates(x_end, y_end)
+                   
+            t += 1
+        return Ship((x_start, y_start), (x_end, y_end))        
 
     def generate_ships_automatically(self) -> List[Ship]:
         """
         :return: A list of automatically (randomly) generated ships for the board
         """
-        # TODO
+        list_ships = []
+        for l in self.DICT_NUMBER_SHIPS_PER_LENGTH.keys():
+            t = 0
+            valid_list = False
+            while not valid_list and t < self._MAX_TRIES:
+                ship = self._generate_random_ship(l)
+                list_ships.append(ship)
+                valid_list = self.valid_ship_placements(list_ships)
+                if not valid_list: 
+                    list_ships.pop()
+                t += 1
+        return list_ships
 
 
 if __name__ == '__main__':
     # SANDBOX for you to play and test your functions
+
+
     list_ships = [
         Ship(coord_start=(1, 1), coord_end=(1, 1)),
         Ship(coord_start=(3, 3), coord_end=(3, 4)),
