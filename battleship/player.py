@@ -123,6 +123,9 @@ class PlayerUser(Player):
 
 
 class PlayerAI(Player):
+    """
+    Base class for an automated Player
+    """
     def __init__(self, name_player: str = None):
         board = BoardAutomatic()
         self.set_ships_opponent_previously_sunk = set()
@@ -160,7 +163,7 @@ class PlayerAI(Player):
 
 class PlayerAutomatic(PlayerAI):
     """
-    Player playing automatically going for positions near previous successful hits
+    Player playing automatically targetting positions near previous successful hits
     ignoring positions near sunk ships and previously hit positions
     """
 
@@ -177,6 +180,7 @@ class PlayerAutomatic(PlayerAI):
                         pos.add((u+i, v+j))
         return pos
 
+    # keeping track of enemy ships that have been sunk
     def _update_sunk_ships(self, opponent: Player) -> None:
         opponent_ships = opponent.board.list_ships
         for ship in opponent_ships:
@@ -192,6 +196,7 @@ class PlayerAutomatic(PlayerAI):
                         positions.add((x,y))        
         return positions 
 
+    # positions near successful hits less any positions near sunk ships and previously targetted positions
     def _get_likely_targets(self) -> set:
         targets = self._get_positions_near_hits()
         duds = self._get_positions_near_ships(self.set_ships_opponent_previously_sunk)
