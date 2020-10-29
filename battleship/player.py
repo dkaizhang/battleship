@@ -20,6 +20,7 @@ class Player(object):
         Player.index_player += 1
 
         self.board = board
+        self.successful_hits = set()
 
         if name_player is None:
             self.name_player = "player_" + str(self.index_player)
@@ -50,6 +51,8 @@ class Player(object):
               f"at position {get_str_coordinates_from_tuple(coord_x, coord_y)}")
 
         is_ship_hit, has_ship_sunk = opponent.is_attacked_at(coord_x, coord_y)
+        if is_ship_hit:
+            self.successful_hits.add((coord_x, coord_y))
 
         if has_ship_sunk:
             print(f"\nA ship of {opponent} HAS SUNK. {self} can play another time.")
@@ -123,7 +126,6 @@ class PlayerAI(Player):
     def __init__(self, name_player: str = None):
         board = BoardAutomatic()
         self.set_ships_opponent_previously_sunk = set()
-        self.set_ships_opponent_previously_hit = set()
         self.set_positions_previously_attacked = set()
         self.last_attack_coord = None
         super().__init__(board, name_player)
@@ -158,31 +160,28 @@ class PlayerAI(Player):
 
 class PlayerAutomatic(PlayerAI):
     """
-    Player playing automatically using a strategy.
+    Player playing automatically going for positions near previous successful hits
+    ignoring positions near sunk ships and previously hit positions
     """
 
     def __init__(self, name_player: str = None):
         super().__init__(name_player)
 
-    # def _get_positions_near_damage(self, x: int, y: int) -> set:
-    #     u = x 
-    #     v = y
-    #     pos = set()
-    #     for i in [-1, 0 ,1]:
-    #         for j in [-1, 0, 1]:
-    #             if (i != 0 or j != 0) and self.board.valid_coordinates(u+i, v+j):
-    #                 pos.add((u+i, v+j))
-    #     return pos
+    def _get_positions_near_hits(self) -> set:
+        pos = set()
+        for hit in self.successful_hits:
+            u, v = hit 
+            for i in [-1, 0 ,1]:
+                for j in [-1, 0, 1]:
+                    if (i != 0 or j != 0) and self.board.valid_coordinates(u+i, v+j):
+                        pos.add((u+i, v+j))
+        return pos
 
-    def _update_sets_on_opponent(self, opponent: Player) -> None:
+    def _update_sunk_ships(self, opponent: Player) -> None:
         opponent_ships = opponent.board.list_ships
-        for x in range(1, 1 + self.board.SIZE_X):
-            for y in range(1, 1 + self.board.SIZE_Y):
-                for ship in opponent_ships:
-                    if ship.is_damaged_at(x, y):
-                        self.set_ships_opponent_previously_hit.add(ship)
-                    if ship.has_sunk():
-                        self.set_ships_opponent_previously_sunk.add(ship)
+        for ship in opponent_ships:
+            if ship.has_sunk():
+                self.set_ships_opponent_previously_sunk.add(ship)
 
     def _get_positions_near_ships(self, ships: set) -> set:
         positions = set()
@@ -194,14 +193,13 @@ class PlayerAutomatic(PlayerAI):
         return positions 
 
     def _get_likely_targets(self) -> set:
-        live_ships = self.set_ships_opponent_previously_hit - self.set_ships_opponent_previously_sunk
-        targets = self._get_positions_near_ships(live_ships)
+        targets = self._get_positions_near_hits()
         duds = self._get_positions_near_ships(self.set_ships_opponent_previously_sunk)
         previous_attacks = self.set_positions_previously_attacked
         return targets - duds - previous_attacks
 
     def select_coordinates_to_attack(self, opponent: Player) -> tuple:
-        self._update_sets_on_opponent(opponent)
+        self._update_sunk_ships(opponent)
         likely_targets = self._get_likely_targets()
         if likely_targets:
             position_to_attack = likely_targets.pop()
