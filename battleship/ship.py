@@ -38,119 +38,75 @@ class Ship(object):
                    coord_end=get_tuple_coordinates_from_str(coord_str_end))
 
     def is_vertical(self) -> bool:
-        """
-        :return: True if and only if the direction of the ship is vertical
-        """
-        # TODO
+        return self.x_start == self.x_end 
 
     def is_horizontal(self) -> bool:
-        """
-        :return: True if and only if the direction of the ship is horizontal
-        """
-        # TODO
+        return self.y_start == self.y_end
 
     def length(self) -> int:
-        """"
-        :return: The number of positions the ship takes on Board
-        """
-        # TODO
+        if self.is_horizontal():
+            return self.x_end - self.x_start + 1
+        return self.y_end - self.y_start + 1
 
     def is_on_coordinate(self,
                          coord_x: int,
                          coord_y: int
                          ) -> bool:
-        """
-        :param coord_x: integer representing the projection of a coordinate on the x-axis
-        :param coord_y: integer representing the projection of a coordinate on the y-axis
-        :return: True if and only if the ship if (coord_x, coord_y) is one of the coordinates of the ship
-        """
-        # TODO
+        return (coord_x, coord_y) in self.set_all_coordinates
 
     def gets_damage_at(self,
                        coord_damage_x: int,
                        coord_damage_y: int
                        ) -> None:
-        """
-        The ship gets damaged at the point (coord_damage_x, coord_damage_y)
-        :param coord_damage_x: integer representing the projection of a coordinate on the x-axis
-        :param coord_damage_y: integer representing the projection of a coordinate on the y-axis
-        """
-        # TODO
+        if (coord_damage_x, coord_damage_y) in self.set_all_coordinates:
+            self.set_coordinates_damages.add((coord_damage_x, coord_damage_y))
 
     def is_damaged_at(self,
                       coord_x: int,
                       coord_y: int,
                       ) -> bool:
-        """
-        :param coord_x: integer representing the projection of a coordinate on the x-axis
-        :param coord_y: integer representing the projection of a coordinate on the y-axis
-        :return True if and only if the ship is damaged at (coord_x, coord_y)
-        """
-        # TODO
+        return (coord_x, coord_y) in self.set_coordinates_damages
 
     def number_damages(self) -> int:
-        """
-        :return: The total number of coordinates at which the ship is damaged
-        """
-        # TODO
+        return len(self.set_coordinates_damages)
 
     def has_sunk(self) -> bool:
-        """
-        :return: True if and only if ship is damaged at all its positions
-        """
-        # TODO
-
+        return len(self) == len(self.set_coordinates_damages)
+        
     def get_all_coordinates(self) -> set:
-        """
-        :return: A set containing only all the coordinates of the ship
-        """
-        # TODO
+        coords = set()
+    
+        if self.is_vertical():
+            x = [self.x_start for _ in range(len(self))]
+            y = list(range(self.y_start, self.y_end + 1, 1))
+        else:
+            x = list(range(self.x_start, self.x_end + 1, 1))
+            y = [self.y_start for _ in range(len(self))]
+        
+        for i in range(len(self)):
+            coords.add((x[i], y[i]))
+
+        return coords
+
 
     def is_near_coordinate(self, coord_x: int, coord_y: int) -> bool:
-        """
-        Tells if the ship is near a coordinate or not.
-
-        In the example below:
-        - There is a ship of length 3 represented by the letter S.
-        - The positions 1, 2, 3 and 4 are near the ship
-        - The positions 5 and 6 are NOT near the ship
-
-        --------------------------
-        |   |   |   |   | 3 |   |
-        -------------------------
-        |   | S | S | S | 4 | 5 |
-        -------------------------
-        | 1 |   | 2 |   |   |   |
-        -------------------------
-        |   |   | 6 |   |   |   |
-        -------------------------
-
-
-        :param coord_x: integer representing the projection of a coordinate on the x-axis
-        :param coord_y: integer representing the projection of a coordinate on the y-axis
-        :return: True if and only if (coord_x, coord_y) is at a distance of 1 of the ship OR is at the
-        corner of the ship
-        """
         return self.x_start - 1 <= coord_x <= self.x_end + 1 \
                and self.y_start - 1 <= coord_y <= self.y_end + 1
 
     def is_near_ship(self, other_ship: 'Ship') -> bool:
-        """
-        :param other_ship: other object of class Ship
-        :return: False if and only if there is a coordinate of other_ship that is near this ship.
-        """
-        # TODO
-
+        other_ship_coords = other_ship.get_all_coordinates()
+        for c in other_ship_coords:
+            if self.is_near_coordinate(c[0], c[1]):
+                return True
+        return False
 
 if __name__ == '__main__':
-    # SANDBOX for you to play and test your functions
-
     ship = Ship(coord_start=(3, 3), coord_end=(5, 3))
     print(ship.is_vertical())
     print(ship.is_near_coordinate(5, 3))
     ship.gets_damage_at(4, 3)
     ship.gets_damage_at(10, 3)
     print(ship.is_damaged_at(4, 3), ship.is_damaged_at(5, 3), ship.is_damaged_at(10, 3))
-
+    
     ship_2 = Ship(coord_start=(4, 1), coord_end=(4, 5))
     print(ship.is_near_ship(ship_2))
