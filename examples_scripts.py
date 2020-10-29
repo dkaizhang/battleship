@@ -1,6 +1,6 @@
 from battleship.board import Board, BoardAutomatic
 from battleship.game import Game
-from battleship.player import PlayerUser, PlayerRandom
+from battleship.player import PlayerUser, PlayerRandom, PlayerAutomatic
 from battleship.ship import Ship
 
 
@@ -78,6 +78,32 @@ def example_user_automatic_board_vs_full_automatic():
 
     # Creating a Random Player Bob, its board is automatically created randomly
     player_bob = PlayerRandom(name_player="Bob")
+
+    # Creating and launching the game
+    game = Game(player_1=player_alice,
+                player_2=player_bob)
+
+    game.play()
+
+
+def example_random_vs_strategic():
+
+    # Creating a Random Player Bob vs a strategic Alice
+    player_alice = PlayerAutomatic(name_player="Alice")
+    player_bob = PlayerRandom(name_player="Bob")
+
+    # Creating and launching the game
+    game = Game(player_1=player_alice,
+                player_2=player_bob)
+
+    game.play()
+
+
+def example_strategic_vs_strategic():
+
+    # Creating a strategic Player Bob vs a strategic Alice
+    player_alice = PlayerAutomatic(name_player="Alice")
+    player_bob = PlayerAutomatic(name_player="Bob")
 
     # Creating and launching the game
     game = Game(player_1=player_alice,
