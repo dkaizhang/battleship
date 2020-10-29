@@ -96,6 +96,7 @@ class Player(object):
         self.board.print_board_without_ships_positions()
 
 
+
 class PlayerUser(Player):
     """
     Player representing a user playing manually
@@ -118,47 +119,15 @@ class PlayerUser(Player):
                 print(value_error)
 
 
-class PlayerAutomatic(Player):
-    """
-    Player playing automatically using a strategy.
-    """
-
+class PlayerAI(Player):
     def __init__(self, name_player: str = None):
         board = BoardAutomatic()
+        self.set_ships_opponent_previously_sunk = set()
+        self.set_ships_opponent_previously_hit = set()
         self.set_positions_previously_attacked = set()
         self.last_attack_coord = None
-        self.list_ships_opponent_previously_sunk = []
-        self.set_positions_near_sunk_ships = set()
-
         super().__init__(board, name_player)
-
-
-
-    def select_coordinates_to_attack(self, opponent: Player) -> tuple:
-        """
-        Overrides the abstract method of the parent class.
-        :param opponent: object of class Player representing the player under attack
-        :return: a tuple of coordinates (coord_x, coord_y) at which the next attack will be performed
-        """
-        # TODO
-
-
-class PlayerRandom(Player):
-    def __init__(self, name_player: str = None):
-        board = BoardAutomatic()
-        self.set_positions_previously_attacked = set()
-        self.last_attack_coord = None
-        self.list_ships_opponent_previously_sunk = []
-
-        super().__init__(board, name_player)
-
-    def select_coordinates_to_attack(self, opponent: Player) -> tuple:
-        position_to_attack = self.select_random_coordinates_to_attack()
-
-        self.set_positions_previously_attacked.add(position_to_attack)
-        self.last_attack_coord = position_to_attack
-        return position_to_attack
-
+    
     def select_random_coordinates_to_attack(self) -> tuple:
         has_position_been_previously_attacked = True
         is_position_near_previously_sunk_ship = True
@@ -171,7 +140,7 @@ class PlayerRandom(Player):
             is_position_near_previously_sunk_ship = self._is_position_near_previously_sunk_ship(coord_random)
 
         return coord_random
-
+        
     def _get_random_coordinates(self) -> tuple:
         coord_random_x = random.randint(1, self.board.SIZE_X)
         coord_random_y = random.randint(1, self.board.SIZE_Y)
@@ -181,10 +150,78 @@ class PlayerRandom(Player):
         return coord_random
 
     def _is_position_near_previously_sunk_ship(self, coord: tuple) -> bool:
-        for ship_opponent in self.list_ships_opponent_previously_sunk:  # type: Ship
+        for ship_opponent in self.set_ships_opponent_previously_sunk:  # type: Ship
             if ship_opponent.has_sunk() and ship_opponent.is_near_coordinate(*coord):
                 return True
         return False
+
+
+class PlayerAutomatic(PlayerAI):
+    """
+    Player playing automatically using a strategy.
+    """
+
+    def __init__(self, name_player: str = None):
+        super().__init__(name_player)
+
+    # def _get_positions_near_damage(self, x: int, y: int) -> set:
+    #     u = x 
+    #     v = y
+    #     pos = set()
+    #     for i in [-1, 0 ,1]:
+    #         for j in [-1, 0, 1]:
+    #             if (i != 0 or j != 0) and self.board.valid_coordinates(u+i, v+j):
+    #                 pos.add((u+i, v+j))
+    #     return pos
+
+    def _update_sets_on_opponent(self, opponent: Player) -> None:
+        opponent_ships = opponent.board.list_ships
+        for x in range(1, 1 + self.board.SIZE_X):
+            for y in range(1, 1 + self.board.SIZE_Y):
+                for ship in opponent_ships:
+                    if ship.is_damaged_at(x, y):
+                        self.set_ships_opponent_previously_hit.add(ship)
+                    if ship.has_sunk():
+                        self.set_ships_opponent_previously_sunk.add(ship)
+
+    def _get_positions_near_ships(self, ships: set) -> set:
+        positions = set()
+        for x in range(1, 1 + self.board.SIZE_X):
+            for y in range(1, 1 + self.board.SIZE_Y):
+                for ship in ships:
+                    if ship.is_near_coordinate(x, y):
+                        positions.add((x,y))        
+        return positions 
+
+    def _get_likely_targets(self) -> set:
+        live_ships = self.set_ships_opponent_previously_hit - self.set_ships_opponent_previously_sunk
+        targets = self._get_positions_near_ships(live_ships)
+        duds = self._get_positions_near_ships(self.set_ships_opponent_previously_sunk)
+        previous_attacks = self.set_positions_previously_attacked
+        return targets - duds - previous_attacks
+
+    def select_coordinates_to_attack(self, opponent: Player) -> tuple:
+        self._update_sets_on_opponent(opponent)
+        likely_targets = self._get_likely_targets()
+        if likely_targets:
+            position_to_attack = likely_targets.pop()
+        else:
+            position_to_attack = self.select_random_coordinates_to_attack()
+
+        self.set_positions_previously_attacked.add(position_to_attack)
+        return position_to_attack
+
+class PlayerRandom(PlayerAI):
+    def __init__(self, name_player: str = None):
+        super().__init__(name_player)
+
+    def select_coordinates_to_attack(self, opponent: Player) -> tuple:
+        position_to_attack = self.select_random_coordinates_to_attack()
+
+        self.set_positions_previously_attacked.add(position_to_attack)
+        self.last_attack_coord = position_to_attack
+        return position_to_attack
+
 
 if __name__ == '__main__':
     # SANDBOX for you to play and test your functions
